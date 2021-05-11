@@ -175,10 +175,10 @@ def main():
             else:
                 user_check = await check_user_exists(uid, client)
                 if user_check:
-                    user_style_cache[uid] = {}
                     fetch_nick = await lookup_nickname(uid, client, server_nicks)
                     fetch_avatar = await lookup_avatar(uid, client)
                     if fetch_nick and fetch_avatar:
+                        user_style_cache[uid] = {}
                         user_style_cache[uid]['nickname'] = fetch_nick
                         user_style_cache[uid]['avatar_url'] = fetch_avatar
                         username = fetch_nick
