@@ -8,15 +8,22 @@ from re import match
 from math import ceil
 from aiohttp import ClientSession
 
-with open('config.json', 'r') as cfg:
-    config = json.load(cfg)
+try:
+    assert os.path.exists('config.json')
 
-potemkin_webhook = config['potemkin_webhook']
-bot_discord_token = config['bot_discord_token']
-default_avatar = config['default_avatar']
-administrator_uid = config['administrator_uid']                 # who to PM when things start to break
-chat_interval_multiplier = config['chat_interval_multiplier']   # lower speeds up chat interval, higher slows it down
-convo_interval_minutes = config['convo_interval_minutes']       # range in minutes to wait to start a new conversation
+    with open('config.json', 'r') as cfg:
+        config = json.load(cfg)
+
+    potemkin_webhook = config['potemkin_webhook']
+    bot_discord_token = config['bot_discord_token']
+    default_avatar = config['default_avatar']
+    administrator_uid = config['administrator_uid']                 # who to PM when things start to break
+    chat_interval_multiplier = config['chat_interval_multiplier']   # lower speeds up chat interval, higher slows it down
+    convo_interval_minutes = config['convo_interval_minutes']       # range in minutes to wait to start a new conversation
+    
+except:
+    print("[!] couldn't load config.json! exiting")
+    sys.exit(1)
 
 with open('usercache.json', 'r', encoding="utf-8") as f:
     user_cache = json.load(f)
