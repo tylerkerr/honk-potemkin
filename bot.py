@@ -29,7 +29,6 @@ except:
 with open('usercache.json', 'r', encoding="utf-8") as f:
     user_cache = json.load(f)
 
-
 def get_chat_author(chatline: str):
     name = match("^[^:]{3,}: ", chatline)[0]
     return name[:-2]
@@ -137,7 +136,6 @@ def main():
 
     @client.event
     async def on_ready():
-        first_run = True
         prev_author = None
         author_repeat_count = 0
         print(f'[+] {client.user.name} has connected to the discord API')
@@ -163,10 +161,6 @@ def main():
                     print('[!] no convos remaining on disk! exiting')
                     sys.exit(1)
                 convo_pool.extend(new_convo)
-                if not first_run:
-                    convo_interval_sleep()
-                else:
-                    first_run = False
 
             next_msg = prep_chat(convo_pool.pop(0))
             message = next_msg['message']
@@ -193,12 +187,14 @@ def main():
                     username = next_msg['author']
                     avatar = default_avatar
             try:
-                if author_repeat_count > max_author_repeat:
+                if author_repeat_count >= max_author_repeat:
                     print(f"[!] skipping over-repeated author chat:", username + ':', message)
                     continue
                 chat_interval_sleep(len(message), len(convo_pool))
                 prev_author = uid
                 send_chat(message, username, avatar)
+                if len(convo_pool) == 0:
+                    convo_interval_sleep()
             except Exception as e:
                 print(f'[!] failed to send chat:')
                 print(next_msg)
