@@ -127,10 +127,13 @@ def main():
     intents.members = True
     client = discord.Client(intents=intents)
     convo_pool = []
+    max_author_repeat = 6
 
     @client.event
     async def on_ready():
         first_run = True
+        prev_author = None
+        author_repeat_count = 0
         print(f'[+] {client.user.name} has connected to the discord API')
         for guild in client.guilds:
             print(f'[+] joined {guild.name} [{guild.id}]')
@@ -144,6 +147,7 @@ def main():
             if len(convo_pool) == 0:
                 print(f"[-] convo pool empty, refreshing")
                 new_convo = get_convo()
+                author_repeat_count = 0
                 convo_reserve = check_convo_reserve()
                 print(f"[-] {convo_reserve} convos remaining")
                 if convo_reserve < 1024 and convo_reserve % 50 == 0:
@@ -161,6 +165,10 @@ def main():
             next_msg = prep_chat(convo_pool.pop(0))
             message = next_msg['message']
             uid = next_msg['uid']
+            if uid == prev_author:
+                author_repeat_count += 1
+            else:
+                author_repeat_count = 0
             if uid in user_style_cache:
                 username = user_style_cache[uid]['nickname']
                 avatar = user_style_cache[uid]['avatar_url']
@@ -179,7 +187,11 @@ def main():
                     username = next_msg['author']
                     avatar = default_avatar
             try:
+                if author_repeat_count > max_author_repeat:
+                    print(f"[!] skipping over-repeated author chat:", username + ':', message)
+                    continue
                 chat_interval_sleep(len(message), len(convo_pool))
+                prev_author = uid
                 await send_chat(message, username, avatar)
             except:
                 print(f'[!] failed to send chat:')
