@@ -3,6 +3,7 @@ import discord
 import time
 import sys
 import os
+import asyncio
 import secrets
 import requests
 import traceback
@@ -17,6 +18,7 @@ try:
 
     potemkin_webhook = config['potemkin_webhook']
     bot_discord_token = config['bot_discord_token']
+    puppetry_channel_id = int(config['puppetry_channel_id'])
     default_avatar = config['default_avatar']
     administrator_uid = config['administrator_uid']                 # who to PM when things start to break
     chat_interval_multiplier = config['chat_interval_multiplier']   # lower speeds up chat interval, higher slows it down
@@ -73,20 +75,20 @@ def get_convo():
     return next_convo
 
 
-def chat_interval_sleep(msg_length: int, convo_pool_size: int):
+async def chat_interval_sleep(msg_length: int, convo_pool_size: int):
     # sleep for a few seconds depending on message length
     seconds = ceil(max(1, msg_length / 3))
     seconds += secrets.choice([0, 0, 0, 0, 0, 2, 3, 5, 7, 11])
     seconds *= chat_interval_multiplier
     print(f"[-] chat sleep for {seconds} seconds before {msg_length} chars. {convo_pool_size} lines left in pool")
-    time.sleep(seconds)
+    await asyncio.sleep(seconds)
 
 
-def convo_interval_sleep():
+async def convo_interval_sleep():
     # sleep for a few minutes
     minutes = secrets.randbelow(convo_interval_minutes[1]) + convo_interval_minutes[0]
     print(f"[-] convo sleep for {minutes} minutes")
-    time.sleep(minutes * 60)
+    await asyncio.sleep(minutes * 60)
 
 
 async def check_user_exists(uid: int, discord_client):
@@ -103,11 +105,11 @@ async def lookup_avatar(uid: int, discord_client):
     return userdata.avatar_url
 
 
-async def lookup_nickname(uid: int, discord_client, server_nicks: dict):
+async def lookup_nickname(uid: int, discord_client):
     userdata = await discord_client.fetch_user(uid)
-    if int(uid) in server_nicks:
-        if server_nicks[int(uid)]:
-            return server_nicks[int(uid)]
+    if int(uid) in discord_client.server_nicks:
+        if discord_client.server_nicks[int(uid)]:
+            return discord_client.server_nicks[int(uid)]
     return userdata.display_name
 
 
@@ -134,6 +136,7 @@ def main():
     client = discord.Client(intents=intents)
     convo_pool = []
     max_author_repeat = 6
+    client.server_nicks = {}
 
     @client.event
     async def on_ready():
@@ -144,9 +147,8 @@ def main():
             print(f'[+] joined {guild.name} [{guild.id}]')
 
         member_list = client.guilds[0].members      # this might need neatening up someday
-        server_nicks = {}
         for member in member_list:
-            server_nicks[member.id] = member.nick
+            client.server_nicks[member.id] = member.nick
 
         while True:
             if len(convo_pool) == 0:
@@ -179,7 +181,7 @@ def main():
             else:
                 user_check = await check_user_exists(uid, client)
                 if user_check:
-                    fetch_nick = await lookup_nickname(uid, client, server_nicks)
+                    fetch_nick = await lookup_nickname(uid, client)
                     fetch_avatar = await lookup_avatar(uid, client)
                     if fetch_nick and fetch_avatar:
                         user_style_cache[uid] = {}
@@ -192,18 +194,29 @@ def main():
                     avatar = default_avatar
             try:
                 if author_repeat_count >= max_author_repeat:
-                    print(f"[!] skipping over-repeated author chat:", username + ':', message)
+                    print(f"[!] skipping rampage:", username + ':', message)
                 else:
-                    chat_interval_sleep(len(message), len(convo_pool))
+                    await chat_interval_sleep(len(message), len(convo_pool))
                     prev_author = uid
                     send_chat(message, username, avatar)
                     if len(convo_pool) == 0:
-                        convo_interval_sleep()
+                        await convo_interval_sleep()
             except Exception as e:
                 print(f'[!] failed to send chat:')
                 print(next_msg)
                 print(e, ''.join(traceback.format_tb(e.__traceback__)))
         
+    @client.event
+    async def on_message(message):
+        if message.channel.id == puppetry_channel_id:    
+            try:
+                uid = message.author.id
+                username = await lookup_nickname(uid, client)
+                avatar = await lookup_avatar(uid, client)
+                send_chat(message.content, username, avatar)
+            except:
+                print("[!] failed to puppet '" + message.author + ': ' + message.content + "'")
+
     client.run(bot_discord_token)
 
 
