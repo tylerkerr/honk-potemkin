@@ -4,9 +4,10 @@ import time
 import sys
 import os
 import secrets
+import requests
+import traceback
 from re import match
 from math import ceil
-from aiohttp import ClientSession
 
 try:
     assert os.path.exists('config.json')
@@ -110,10 +111,15 @@ async def lookup_nickname(uid: int, discord_client, server_nicks: dict):
     return userdata.display_name
 
 
-async def send_chat(msg, username, avatar_url):
-    async with ClientSession() as session:
-        webhook = discord.Webhook.from_url(potemkin_webhook, adapter=discord.AsyncWebhookAdapter(session))
-        await webhook.send(content=msg, username=username, avatar_url=avatar_url)
+def send_chat(msg, username, avatar_url):
+    data = {"content" : msg,
+            "username" : username,
+            "avatar_url": f'{avatar_url}'}
+    response = requests.post(potemkin_webhook, json = data)
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        print(err)
 
 
 async def message_admin(discord_client, msg: str):
@@ -192,14 +198,14 @@ def main():
                     continue
                 chat_interval_sleep(len(message), len(convo_pool))
                 prev_author = uid
-                await send_chat(message, username, avatar)
-            except:
+                send_chat(message, username, avatar)
+            except Exception as e:
                 print(f'[!] failed to send chat:')
                 print(next_msg)
+                print(e, ''.join(traceback.format_tb(e.__traceback__)))
         
     client.run(bot_discord_token)
 
-        
 
 if __name__ == '__main__':
     main()
