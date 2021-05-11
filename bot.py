@@ -18,11 +18,13 @@ try:
 
     potemkin_webhook = config['potemkin_webhook']
     bot_discord_token = config['bot_discord_token']
+    potemkin_channel_id = int(config['potemkin_channel_id'])
     puppetry_channel_id = int(config['puppetry_channel_id'])
     default_avatar = config['default_avatar']
     administrator_uid = config['administrator_uid']                 # who to PM when things start to break
     chat_interval_multiplier = config['chat_interval_multiplier']   # lower speeds up chat interval, higher slows it down
     convo_interval_minutes = config['convo_interval_minutes']       # range in minutes to wait to start a new conversation
+    censored_strings = config['censored_strings']
 
 except:
     print("[!] couldn't load config.json! exiting")
@@ -86,7 +88,7 @@ async def chat_interval_sleep(msg_length: int, convo_pool_size: int):
 
 async def convo_interval_sleep():
     # sleep for a few minutes
-    minutes = secrets.randbelow(convo_interval_minutes[1]) + convo_interval_minutes[0]
+    minutes = secrets.randbelow(convo_interval_minutes[1] - convo_interval_minutes[0] + 1) + convo_interval_minutes[0]
     print(f"[-] convo sleep for {minutes} minutes")
     await asyncio.sleep(minutes * 60)
 
@@ -127,6 +129,13 @@ def send_chat(msg, username, avatar_url):
 async def message_admin(discord_client, msg: str):
     admin_user = await discord_client.fetch_user(administrator_uid)
     await admin_user.send(msg)
+
+
+def is_message_sensitive(msg: str):
+    for string in censored_strings:
+        if string.lower() in msg.lower():
+            return True
+    return False
 
 
 def main():
@@ -208,14 +217,29 @@ def main():
         
     @client.event
     async def on_message(message):
-        if message.channel.id == puppetry_channel_id:    
+        if message.channel.id == puppetry_channel_id and not message.author.bot:    
             try:
                 uid = message.author.id
                 username = await lookup_nickname(uid, client)
                 avatar = await lookup_avatar(uid, client)
                 send_chat(message.content, username, avatar)
             except:
-                print("[!] failed to puppet '" + message.author + ': ' + message.content + "'")
+                print("[!] failed to puppet '" + message.author.display_name + ': ' + message.content + "'")
+        if message.channel.id == potemkin_channel_id and not message.author.bot:
+            try:
+                uid = message.author.id
+                username = await lookup_nickname(uid, client)
+                avatar = await lookup_avatar(uid, client)
+                if is_message_sensitive(message.content):
+                    chan = client.get_channel(puppetry_channel_id)
+                    await chan.send(f"Message by <@{message.author.id}> censored:```{message.content}```")
+                    await message.delete()
+                    await message.channel.send(f"<@{message.author.id}>! OPSEC CENSORED! USE U4 LOCAL CHAT FOR SENSITIVE INTEL")
+                else:
+                    send_chat(message.content, username, avatar)
+                    await message.delete()
+            except:
+                print("[!] failed to censor '" + message.author.display_name + ': ' + message.content + "'")
 
     client.run(bot_discord_token)
 

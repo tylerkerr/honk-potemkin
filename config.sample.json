@@ -1,9 +1,11 @@
 {
-	"potemkin_webhook": "",
-	"puppetry_channel_id": "841753871352856636",
+	"potemkin_webhook": "https://discord.com/api/webhooks/secreturl",
+	"potemkin_channel_id": "100000000000000000",
+	"puppetry_channel_id": "200000000000000000",
 	"bot_discord_token": "",
 	"default_avatar": "https://discord.com/assets/0e291f67c9274a1abdddeb3fd919cbaa.png",
 	"administrator_uid": "142846487582212096",
-	"chat_interval_multiplier": 0.5,
-	"convo_interval_minutes": [2, 45]
+	"chat_interval_multiplier": 2,
+	"convo_interval_minutes": [10, 90],
+	"censored_strings": ["Notallowedtochatthisword", "Thisisacloselyguardedsecret!"]
 }
