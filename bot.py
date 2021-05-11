@@ -85,9 +85,7 @@ def convo_interval_sleep():
     # sleep for a few minutes
     minutes = secrets.randbelow(convo_interval_minutes[1]) + convo_interval_minutes[0]
     print(f"[-] convo sleep for {minutes} minutes")
-    # time.sleep(minutes * 60)
-    # ^^^ SWITCH TO MINUTES FOR PRODUCTION ^^^
-    time.sleep(minutes)
+    time.sleep(minutes * 60)
 
 
 async def check_user_exists(uid: int, discord_client):
