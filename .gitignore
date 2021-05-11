@@ -13,6 +13,7 @@ trained_model*
 transformers/
 aitextgen/
 convos/*
+used_convos/*
 parsed_discord.txt
 usercache.json
 nvidia-smi.exe

@@ -20,7 +20,7 @@ try:
     administrator_uid = config['administrator_uid']                 # who to PM when things start to break
     chat_interval_multiplier = config['chat_interval_multiplier']   # lower speeds up chat interval, higher slows it down
     convo_interval_minutes = config['convo_interval_minutes']       # range in minutes to wait to start a new conversation
-    
+
 except:
     print("[!] couldn't load config.json! exiting")
     sys.exit(1)
@@ -102,8 +102,11 @@ async def lookup_avatar(uid: int, discord_client):
     return userdata.avatar_url
 
 
-async def lookup_nickname(uid: int, discord_client):
+async def lookup_nickname(uid: int, discord_client, server_nicks: dict):
     userdata = await discord_client.fetch_user(uid)
+    if int(uid) in server_nicks:
+        if server_nicks[int(uid)]:
+            return server_nicks[int(uid)]
     return userdata.display_name
 
 
@@ -131,6 +134,11 @@ def main():
         print(f'[+] {client.user.name} has connected to the discord API')
         for guild in client.guilds:
             print(f'[+] joined {guild.name} [{guild.id}]')
+
+        member_list = client.guilds[0].members      # this might need neatening up someday
+        server_nicks = {}
+        for member in member_list:
+            server_nicks[member.id] = member.nick
 
         while True:
             if len(convo_pool) == 0:
@@ -160,7 +168,7 @@ def main():
                 user_check = await check_user_exists(uid, client)
                 if user_check:
                     user_style_cache[uid] = {}
-                    fetch_nick = await lookup_nickname(uid, client)
+                    fetch_nick = await lookup_nickname(uid, client, server_nicks)
                     fetch_avatar = await lookup_avatar(uid, client)
                     if fetch_nick and fetch_avatar:
                         user_style_cache[uid]['nickname'] = fetch_nick
