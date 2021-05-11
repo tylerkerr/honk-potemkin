@@ -1,0 +1,8 @@
+{
+	"potemkin_webhook": "",
+	"bot_discord_token": "",
+	"default_avatar": "https://discord.com/assets/0e291f67c9274a1abdddeb3fd919cbaa.png",
+	"administrator_uid": "142846487582212096",
+	"chat_interval_multiplier": 0.5,
+	"convo_interval_minutes": [2, 45]
+}

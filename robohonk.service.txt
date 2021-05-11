@@ -1,0 +1,13 @@
+[Unit]
+Description=Robohonk potemkin village AI
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/etc/robohonk
+Environment="PATH=/etc/robohonk/env/bin:/usr/bin/"
+ExecStart=/etc/robohonk/env/bin/python /etc/robohonk/bot.py
+
+[Install]
+WantedBy=multi-user.target
