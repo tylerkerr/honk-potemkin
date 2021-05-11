@@ -89,6 +89,8 @@ def convo_interval_sleep():
 
 
 async def check_user_exists(uid: int, discord_client):
+    if not uid:
+        return False
     userdata = await discord_client.fetch_user(uid)
     if userdata:
         return True
