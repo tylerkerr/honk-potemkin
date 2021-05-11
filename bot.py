@@ -75,8 +75,9 @@ def get_convo():
 
 def chat_interval_sleep(msg_length: int, convo_pool_size: int):
     # sleep for a few seconds depending on message length
-    seconds = ceil(max(1, msg_length / 3) * chat_interval_multiplier)
+    seconds = ceil(max(1, msg_length / 3))
     seconds += secrets.choice([0, 0, 0, 0, 0, 2, 3, 5, 7, 11])
+    seconds *= chat_interval_multiplier
     print(f"[-] chat sleep for {seconds} seconds before {msg_length} chars. {convo_pool_size} lines left in pool")
     time.sleep(seconds)
 
@@ -169,6 +170,9 @@ def main():
                 author_repeat_count += 1
             else:
                 author_repeat_count = 0
+            if not uid:
+                username = next_msg['author']
+                avatar = default_avatar
             if uid in user_style_cache:
                 username = user_style_cache[uid]['nickname']
                 avatar = user_style_cache[uid]['avatar_url']
@@ -189,12 +193,12 @@ def main():
             try:
                 if author_repeat_count >= max_author_repeat:
                     print(f"[!] skipping over-repeated author chat:", username + ':', message)
-                    continue
-                chat_interval_sleep(len(message), len(convo_pool))
-                prev_author = uid
-                send_chat(message, username, avatar)
-                if len(convo_pool) == 0:
-                    convo_interval_sleep()
+                else:
+                    chat_interval_sleep(len(message), len(convo_pool))
+                    prev_author = uid
+                    send_chat(message, username, avatar)
+                    if len(convo_pool) == 0:
+                        convo_interval_sleep()
             except Exception as e:
                 print(f'[!] failed to send chat:')
                 print(next_msg)
