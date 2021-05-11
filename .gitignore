@@ -1,0 +1,18 @@
+# environment
+env/
+__pycache__/
+*.pyc
+.vscode
+.DS_Store
+
+# secret
+config.json
+
+# generated
+trained_model*
+transformers/
+aitextgen/
+convos/*
+parsed_discord.txt
+usercache.json
+nvidia-smi.exe
