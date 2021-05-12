@@ -1,7 +1,6 @@
 {
 	"potemkin_webhook": "https://discord.com/api/webhooks/secreturl",
 	"potemkin_channel_id": "100000000000000000",
-	"puppetry_channel_id": "200000000000000000",
 	"bot_discord_token": "",
 	"default_avatar": "https://discord.com/assets/0e291f67c9274a1abdddeb3fd919cbaa.png",
 	"administrator_uid": "142846487582212096",

@@ -7,7 +7,7 @@ import asyncio
 import secrets
 import requests
 import traceback
-from re import match
+import re
 from math import ceil
 
 try:
@@ -19,7 +19,6 @@ try:
     potemkin_webhook = config['potemkin_webhook']
     bot_discord_token = config['bot_discord_token']
     potemkin_channel_id = int(config['potemkin_channel_id'])
-    puppetry_channel_id = int(config['puppetry_channel_id'])
     default_avatar = config['default_avatar']
     administrator_uid = config['administrator_uid']                 # who to PM when things start to break
     chat_interval_multiplier = config['chat_interval_multiplier']   # lower speeds up chat interval, higher slows it down
@@ -33,8 +32,9 @@ except:
 with open('usercache.json', 'r', encoding="utf-8") as f:
     user_cache = json.load(f)
 
+
 def get_chat_author(chatline: str):
-    name = match("^[^:]{3,}: ", chatline)[0]
+    name = re.match("^[^:]{3,}: ", chatline)[0]
     return name[:-2]
 
 
@@ -138,6 +138,43 @@ def is_message_sensitive(msg: str):
     return False
 
 
+def get_bare_emoji(msg: str):
+    emoji = re.findall(r'\W(:\w+:)\W', msg)
+    if emoji:
+        return emoji
+    return False
+
+
+def get_emojicode(emoji: str, discord_client):
+    if emoji in discord_client.emoji_lookup:
+        return discord_client.emoji_lookup[emoji]
+    try:
+        emojicode = discord.utils.get(discord_client.guilds[0].emojis, name=emoji)
+        if emojicode:
+            discord_client.emoji_lookup[emoji] = str(emojicode)
+            return str(emojicode)
+        return False
+    except:
+        return False
+
+
+def emoji_massage(msg: str, discord_client):
+    bare_emoji = get_bare_emoji(msg)
+    if not bare_emoji:
+        return msg
+    translated = {}
+    for bare in bare_emoji:
+        check = get_emojicode(bare[1:-1], discord_client)
+        if check:
+            translated[bare] = check
+        else:
+            translated[bare] = bare
+    massaged = msg
+    for emoji in translated:
+        massaged = re.sub(emoji, translated[emoji], massaged)
+    return massaged
+
+
 def main():
     user_style_cache = {}
     intents = discord.Intents.default()
@@ -146,6 +183,7 @@ def main():
     convo_pool = []
     max_author_repeat = 6
     client.server_nicks = {}
+    client.emoji_lookup = {}
 
     @client.event
     async def on_ready():
@@ -207,7 +245,8 @@ def main():
                 else:
                     await chat_interval_sleep(len(message), len(convo_pool))
                     prev_author = uid
-                    send_chat(message, username, avatar)
+                    massaged = emoji_massage(message, client)
+                    send_chat(massaged, username, avatar)
                     if len(convo_pool) == 0:
                         await convo_interval_sleep()
             except Exception as e:
@@ -217,22 +256,12 @@ def main():
         
     @client.event
     async def on_message(message):
-        if message.channel.id == puppetry_channel_id and not message.author.bot:    
-            try:
-                uid = message.author.id
-                username = await lookup_nickname(uid, client)
-                avatar = await lookup_avatar(uid, client)
-                send_chat(message.content, username, avatar)
-            except:
-                print("[!] failed to puppet '" + message.author.display_name + ': ' + message.content + "'")
         if message.channel.id == potemkin_channel_id and not message.author.bot:
             try:
                 uid = message.author.id
                 username = await lookup_nickname(uid, client)
                 avatar = await lookup_avatar(uid, client)
                 if is_message_sensitive(message.content):
-                    chan = client.get_channel(puppetry_channel_id)
-                    await chan.send(f"Message by <@{message.author.id}> censored:```{message.content}```")
                     await message.delete()
                     await message.channel.send(f"<@{message.author.id}>! OPSEC CENSORED! USE U4 LOCAL CHAT FOR SENSITIVE INTEL")
                 else:
