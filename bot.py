@@ -123,7 +123,9 @@ def send_chat(msg, username, avatar_url):
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError as err:
+        print("[!] HTTP error follows:")
         print(err)
+        print("[!] failed message:", username + ': ' + msg)
 
 
 async def message_admin(discord_client, msg: str):
