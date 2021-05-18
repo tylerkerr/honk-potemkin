@@ -82,6 +82,7 @@ async def chat_interval_sleep(msg_length: int, convo_pool_size: int):
     seconds = ceil(max(1, msg_length / 3))
     seconds += secrets.choice([0, 0, 0, 0, 0, 2, 3, 5, 7, 11])
     seconds *= chat_interval_multiplier
+    seconds = ceil(seconds)
     print(f"[-] chat sleep for {seconds} seconds before {msg_length} chars. {convo_pool_size} lines left in pool")
     await asyncio.sleep(seconds)
 
@@ -147,6 +148,18 @@ def get_bare_emoji(msg: str):
     return False
 
 
+def get_role_mentions(msg: str):
+    roles = re.findall(r'<@&\d{5,}>', msg)
+    if roles:
+        return roles
+    return False
+
+
+def get_role_id(mention: str):
+    role_id = re.search(r'\d+', mention)[0]
+    return int(role_id)
+
+
 def get_emojicode(emoji: str, discord_client):
     if emoji in discord_client.emoji_lookup:
         return discord_client.emoji_lookup[emoji]
@@ -155,6 +168,21 @@ def get_emojicode(emoji: str, discord_client):
         if emojicode:
             discord_client.emoji_lookup[emoji] = str(emojicode)
             return str(emojicode)
+        return False
+    except:
+        return False
+
+
+def get_rolename(role: int, discord_client):
+    if role in discord_client.role_lookup:
+        return discord_client.role_lookup[role]
+    role_id = get_role_id(role)
+    try:
+        rolename = discord.utils.get(discord_client.guilds[0].roles, id=role_id)
+        if rolename:
+            fancy = '**@' + str(rolename) + '**'
+            discord_client.emoji_lookup[role] = fancy
+            return fancy
         return False
     except:
         return False
@@ -177,6 +205,23 @@ def emoji_massage(msg: str, discord_client):
     return massaged
 
 
+def role_massage(msg: str, discord_client):
+    roles = get_role_mentions(msg)
+    if not roles:
+        return msg
+    translated = {}
+    for role in roles:
+        check = get_rolename(role, discord_client)
+        if check:
+            translated[role] = check
+        else:
+            translated[role] = '**@Diplomat**'
+    massaged = msg
+    for role in translated:
+        massaged = re.sub(role, translated[role], massaged)
+    return massaged
+
+
 def main():
     user_style_cache = {}
     intents = discord.Intents.default()
@@ -186,6 +231,7 @@ def main():
     max_author_repeat = 6
     client.server_nicks = {}
     client.emoji_lookup = {}
+    client.role_lookup = {}
 
     @client.event
     async def on_ready():
@@ -247,8 +293,9 @@ def main():
                 else:
                     await chat_interval_sleep(len(message), len(convo_pool))
                     prev_author = uid
-                    massaged = emoji_massage(message, client)
-                    send_chat(massaged, username, avatar)
+                    emoji_massaged = emoji_massage(message, client)
+                    role_massaged = role_massage(emoji_massaged, client)
+                    send_chat(role_massaged, username, avatar)
                     if len(convo_pool) == 0:
                         await convo_interval_sleep()
             except Exception as e:
