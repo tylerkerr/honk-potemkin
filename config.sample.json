@@ -6,5 +6,6 @@
 	"administrator_uid": "142846487582212096",
 	"chat_interval_multiplier": 2,
 	"convo_interval_minutes": [10, 90],
-	"censored_strings": ["Notallowedtochatthisword", "Thisisacloselyguardedsecret!"]
+	"censored_strings": ["Notallowedtochatthisword", "Thisisacloselyguardedsecret!"],
+	"do_not_mention": {"complainer": 769050453722923039}
 }

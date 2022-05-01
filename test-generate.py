@@ -4,8 +4,8 @@ from aitextgen import aitextgen
 
 ai = aitextgen(model_folder="trained_model", to_gpu=True)
 
-ai.generate(n=20,
-            batch_size=50,
-            max_length=256,
-            temperature=0.8,
-            top_p=0.9)
+ai.generate(n=5,
+                max_length=2048,
+                temperature=1.3,
+                # repetition_penalty=1.2,
+                top_p=0.9)

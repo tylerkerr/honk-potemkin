@@ -10,12 +10,11 @@ blowshitup
 serious
 warroom
 pocketdefense
-
-299324 messages
-from 9 channels
+wingmates
+shootblues
 '''
 
-dht_input = 'goose-2021-05-08.txt'
+dht_input = 'goose-2022-04-19.txt'
 
 with open(dht_input, 'r', encoding="utf-8") as f:
     dump = json.load(f)

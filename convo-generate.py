@@ -7,7 +7,7 @@ from hashlib import sha1
 import time
 import os, os.path
 
-convo_max = 65534
+convo_max = 4000
 
 def is_valid_chat(chatline: str):
     return bool(match(r"^[^:]{3,}: .{1,}", chatline))
@@ -31,8 +31,8 @@ def generate_chats():
     with redirect_stdout(f):
         ai.generate(n=10,
                 max_length=2048,
-                temperature=0.8,
-                repetition_penalty=1.2,
+                temperature=1.3,
+                # repetition_penalty=1.2,
                 top_p=0.9)
     out = f.getvalue()
     end = time.perf_counter()

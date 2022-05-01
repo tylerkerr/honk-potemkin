@@ -24,6 +24,7 @@ try:
     chat_interval_multiplier = config['chat_interval_multiplier']   # lower speeds up chat interval, higher slows it down
     convo_interval_minutes = config['convo_interval_minutes']       # range in minutes to wait to start a new conversation
     censored_strings = config['censored_strings']
+    do_not_mention = config['do_not_mention'].values()
 
 except:
     print("[!] couldn't load config.json! exiting")
@@ -97,10 +98,13 @@ async def convo_interval_sleep():
 async def check_user_exists(uid: int, discord_client):
     if not uid:
         return False
-    userdata = await discord_client.fetch_user(uid)
-    if userdata:
-        return True
-    return False
+    try:
+        userdata = await discord_client.fetch_user(uid)
+        if userdata:
+            return True
+        return False
+    except:
+        return False
 
 
 async def lookup_avatar(uid: int, discord_client):
@@ -155,9 +159,21 @@ def get_role_mentions(msg: str):
     return False
 
 
+def get_user_mentions(msg: str):
+    mentions = re.findall(r'<@!?\d{5,}>', msg)
+    if mentions:
+        return mentions
+    return False 
+
+
 def get_role_id(mention: str):
     role_id = re.search(r'\d+', mention)[0]
     return int(role_id)
+
+
+def get_mention_id(mention: str):
+    mention_id = re.search(r'\d+', mention)[0]
+    return int(mention_id)
 
 
 def get_emojicode(emoji: str, discord_client):
@@ -219,6 +235,31 @@ def role_massage(msg: str, discord_client):
     massaged = msg
     for role in translated:
         massaged = re.sub(role, translated[role], massaged)
+    return massaged
+
+
+async def mention_massage(msg: str, discord_client):
+    mentions = get_user_mentions(msg)
+    if not mentions:
+        return msg
+    translated = {}
+    for mention in mentions:
+        mid = get_mention_id(mention)
+        if not mid in do_not_mention:
+            translated[mention] = mention
+            continue
+        user_check = await check_user_exists(mid, discord_client)
+        if user_check:
+            name_check = await lookup_nickname(mid, discord_client)
+            if name_check:
+                translated[mention] = '**__@' + name_check + '__**'
+            else:
+                translated[mention] = '**__@Elroy Jetson__**'
+        else:
+            translated[mention] = '**__@Elroy Jetson__**'
+    massaged = msg
+    for mention in translated:
+        massaged = re.sub(mention, translated[mention], massaged)
     return massaged
 
 
@@ -295,7 +336,8 @@ def main():
                     prev_author = uid
                     emoji_massaged = emoji_massage(message, client)
                     role_massaged = role_massage(emoji_massaged, client)
-                    send_chat(role_massaged, username, avatar)
+                    mention_massaged = await mention_massage(role_massaged, client)
+                    send_chat(mention_massaged, username, avatar)
                     if len(convo_pool) == 0:
                         await convo_interval_sleep()
             except Exception as e:
